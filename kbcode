@@ -1,0 +1,146 @@
+#!/bin/bash
+
+# kbcode - Global command for managing Claude Code configurations
+# Author: Generated for system-wide usage
+# Description: Switch between different Claude Code API configurations
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_status() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Function to backup current settings
+backup_settings() {
+    local settings_file="$HOME/.claude/settings.json"
+    if [[ -f "$settings_file" ]]; then
+        cp "$settings_file" "$settings_file.backup.$(date +%Y%m%d_%H%M%S)"
+        print_status "Current settings backed up"
+    fi
+}
+
+# Function to update settings for GLM mode
+update_to_glm() {
+    local settings_file="$HOME/.claude/settings.json"
+    local settings_dir=$(dirname "$settings_file")
+    local glm_config="/root/kbcode/glm.ini"
+
+    # Create directory if it doesn't exist
+    mkdir -p "$settings_dir"
+
+    # Check if GLM config file exists
+    if [[ ! -f "$glm_config" ]]; then
+        print_error "GLM configuration file not found: $glm_config"
+        return 1
+    fi
+
+    # Copy GLM configuration
+    cp "$glm_config" "$settings_file"
+
+    print_status "Settings updated to GLM configuration"
+}
+
+# Function to update settings for Claude mode
+update_to_claude() {
+    local settings_file="$HOME/.claude/settings.json"
+    local settings_dir=$(dirname "$settings_file")
+    local claude_config="/root/kbcode/claude.ini"
+
+    # Create directory if it doesn't exist
+    mkdir -p "$settings_dir"
+
+    # Check if Claude config file exists
+    if [[ ! -f "$claude_config" ]]; then
+        print_error "Claude configuration file not found: $claude_config"
+        return 1
+    fi
+
+    # Copy Claude configuration
+    cp "$claude_config" "$settings_file"
+
+    print_status "Settings updated to Claude configuration (empty env)"
+}
+
+# Function to run Claude with appropriate arguments
+run_claude() {
+    local resume_arg=""
+
+    # Check if --resume was passed
+    for arg in "$@"; do
+        if [[ "$arg" == "--resume" ]]; then
+            resume_arg="--resume"
+            break
+        fi
+    done
+
+    print_status "Starting Claude Code..."
+    exec claude --dangerously-skip-permissions $resume_arg
+}
+
+# Main function
+main() {
+    local command="$1"
+    shift
+
+    case "$command" in
+        "glm")
+            print_status "Switching to GLM mode..."
+            backup_settings
+            update_to_glm
+            run_claude "$@"
+            ;;
+        "claude")
+            print_status "Switching to Claude mode..."
+            backup_settings
+            update_to_claude
+            run_claude "$@"
+            ;;
+        "-h"|"--help"|"help")
+            echo "kbcode - Claude Code Configuration Manager"
+            echo ""
+            echo "Usage:"
+            echo "  kbcode glm [--resume]     Switch to GLM API configuration and run Claude"
+            echo "  kbcode claude [--resume]  Switch to default Claude configuration and run Claude"
+            echo "  kbcode help               Show this help message"
+            echo ""
+            echo "Examples:"
+            echo "  kbcode glm                Use GLM API configuration"
+            echo "  kbcode glm --resume       Use GLM API and resume last session"
+            echo "  kbcode claude             Use default Claude configuration"
+            echo "  kbcode claude --resume    Use default Claude and resume last session"
+            ;;
+        *)
+            print_error "Unknown command: $command"
+            echo ""
+            echo "Usage: kbcode {glm|claude} [--resume]"
+            echo "Use 'kbcode help' for more information"
+            exit 1
+            ;;
+    esac
+}
+
+# Check if no arguments provided
+if [[ $# -eq 0 ]]; then
+    print_error "No command provided"
+    echo ""
+    echo "Usage: kbcode {glm|claude} [--resume]"
+    echo "Use 'kbcode help' for more information"
+    exit 1
+fi
+
+# Run main function
+main "$@"
