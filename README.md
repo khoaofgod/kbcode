@@ -64,6 +64,14 @@ Download the following files from the repository:
 #### Method 1: Add to PATH (Recommended)
 
 1. **Choose installation directory** (e.g., `C:\kbcode`):
+
+   **Using PowerShell:**
+   ```powershell
+   mkdir C:\kbcode
+   Copy-Item kbcode.bat, glm.ini, claude.ini C:\kbcode\
+   ```
+
+   **Using Command Prompt (cmd):**
    ```cmd
    mkdir C:\kbcode
    copy kbcode.bat glm.ini claude.ini C:\kbcode\
@@ -86,8 +94,15 @@ Download the following files from the repository:
 #### Method 2: System-Wide Batch File
 
 1. **Copy to Windows directory**:
+
+   **Using PowerShell:**
+   ```powershell
+   Copy-Item kbcode.bat, glm.ini, claude.ini C:\Windows\
+   ```
+
+   **Using Command Prompt (cmd):**
    ```cmd
-   copy kbcode.bat glm.ini claude.ini C:\Windows\
+   copy kbcode.bat glm.ini claude.ini C:\
    ```
 
 2. **Verify installation**:
