@@ -42,18 +42,20 @@ Download the following files from the repository:
 
 1. **Move files to system directory**:
    ```bash
-   sudo mkdir -p /root/kbcode/
-   sudo cp kbcode glm.ini claude.ini /root/kbcode/
+   sudo mkdir -p /etc/kbcode/
+   sudo chmod 0777 /etc/kbcode/
+   sudo cp kbcode glm.ini claude.ini /etc/kbcode/
+   sudo chmod 0666 /etc/kbcode/glm.ini /etc/kbcode/claude.ini
    ```
 
 2. **Make executable**:
    ```bash
-   sudo chmod +x /root/kbcode/kbcode
+   sudo chmod +x /etc/kbcode/kbcode
    ```
 
 3. **Create global symbolic link**:
    ```bash
-   sudo ln -s /root/kbcode/kbcode /usr/local/bin/kbcode
+   sudo ln -s /etc/kbcode/kbcode /usr/local/bin/kbcode
    ```
 
 4. **Verify installation**:
@@ -198,12 +200,12 @@ kbcode claude --resume
 
 **Command not found**:
 - Check if symlink exists: `ls -la /usr/local/bin/kbcode`
-- Verify script is executable: `ls -la /root/kbcode/kbcode`
-- Try full path: `/root/kbcode/kbcode help`
+- Verify script is executable: `ls -la /etc/kbcode/kbcode`
+- Try full path: `/etc/kbcode/kbcode help`
 
 **Permission denied**:
-- Run with sudo: `sudo /root/kbcode/kbcode help`
-- Check permissions: `ls -la /root/kbcode/`
+- Run with sudo: `sudo /etc/kbcode/kbcode help`
+- Check permissions: `ls -la /etc/kbcode/`
 
 **Claude not found**:
 - Check npm global installation: `npm list -g @anthropic-ai/claude-code`
@@ -228,8 +230,8 @@ kbcode claude --resume
 - Backups: `%USERPROFILE%\.claude\settings.json.backup.*`
 
 ### Linux
-- Script: `/root/kbcode/kbcode`
-- Configs: `/root/kbcode/glm.ini`, `/root/kbcode/claude.ini`
+- Script: `/etc/kbcode/kbcode`
+- Configs: `/etc/kbcode/glm.ini`, `/etc/kbcode/claude.ini`
 - Settings: `~/.claude/settings.json`
 - Backups: `~/.claude/settings.json.backup.*`
 
