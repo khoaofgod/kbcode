@@ -37,7 +37,7 @@ backup_settings() {
 update_to_glm() {
     local settings_file="$HOME/.claude/settings.json"
     local settings_dir=$(dirname "$settings_file")
-    local glm_config="/root/kbcode/glm.ini"
+    local glm_config="/etc/kbcode/glm.ini"
 
     # Create directory if it doesn't exist
     mkdir -p "$settings_dir"
@@ -58,7 +58,7 @@ update_to_glm() {
 update_to_claude() {
     local settings_file="$HOME/.claude/settings.json"
     local settings_dir=$(dirname "$settings_file")
-    local claude_config="/root/kbcode/claude.ini"
+    local claude_config="/etc/kbcode/claude.ini"
 
     # Create directory if it doesn't exist
     mkdir -p "$settings_dir"

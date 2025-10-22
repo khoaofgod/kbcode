@@ -6,10 +6,13 @@
 npm install -g @anthropic-ai/claude-code
 
 # Create directory
-mkdir -p /root/kbcode/
+mkdir -p /etc/kbcode/
+
+# Set directory permissions for all users
+chmod 0777 /etc/kbcode/
 
 # Create GLM config
-cat > /root/kbcode/glm.ini << 'EOF'
+cat > /etc/kbcode/glm.ini << 'EOF'
 {
     "env": {
         "ANTHROPIC_AUTH_TOKEN": "your-token-api",
@@ -21,25 +24,25 @@ cat > /root/kbcode/glm.ini << 'EOF'
 EOF
 
 # Create Claude config
-cat > /root/kbcode/claude.ini << 'EOF'
+cat > /etc/kbcode/claude.ini << 'EOF'
 {
     "env": {},
     "alwaysThinkingEnabled": true
 }
 EOF
 
-# Set permissions for config files
-chmod 644 /root/kbcode/glm.ini
-chmod 644 /root/kbcode/claude.ini
+# Set permissions for config files (readable and writable by all)
+chmod 0666 /etc/kbcode/glm.ini
+chmod 0666 /etc/kbcode/claude.ini
 
 # Download kbcode script
-wget https://raw.githubusercontent.com/khoaofgod/kbcode/refs/heads/master/kbcode -O /root/kbcode/kbcode
+wget https://raw.githubusercontent.com/khoaofgod/kbcode/refs/heads/master/kbcode -O /etc/kbcode/kbcode
 
 # Make executable
-chmod +x /root/kbcode/kbcode
+chmod +x /etc/kbcode/kbcode
 
 # Create symbolic link
-ln -s /root/kbcode/kbcode /usr/local/bin/kbcode
+ln -s /etc/kbcode/kbcode /usr/local/bin/kbcode
 
 # ==================================
 # WINDOWS INSTALLATION
