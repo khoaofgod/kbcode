@@ -77,6 +77,82 @@ copy "%CLAUDE_CONFIG%" "%SETTINGS_FILE%" >nul 2>&1
 call :print_status "Settings updated to Claude configuration (empty env)"
 goto :eof
 
+:set_env_from_settings
+set "SETTINGS_FILE=%USERPROFILE%\.claude\settings.json"
+
+if not exist "%SETTINGS_FILE%" (
+    call :print_warning "Settings file not found: %SETTINGS_FILE%"
+    goto :eof
+)
+
+REM Clear existing environment variables
+set "ANTHROPIC_AUTH_TOKEN="
+set "ANTHROPIC_BASE_URL="
+set "API_TIMEOUT_MS="
+
+REM Use simple string parsing to extract environment variables from JSON
+for /f "tokens=*" %%a in ('findstr /C:"ANTHROPIC_AUTH_TOKEN" "%SETTINGS_FILE%" 2^>nul') do (
+    for /f "delims=" %%b in ("%%a") do (
+        set "line=%%b"
+        set "line=!line:*\"ANTHROPIC_AUTH_TOKEN\": =!"
+        for /f "delims=" %%c in ("!line!") do (
+            set "token=%%c"
+            set "token=!token:"=!"
+            set "token=!token:~=!"
+            set "token=!token:,=!"
+            for /f "delims=" %%d in ("!token!") do set "ANTHROPIC_AUTH_TOKEN=%%d"
+        )
+    )
+)
+
+for /f "tokens=*" %%a in ('findstr /C:"ANTHROPIC_BASE_URL" "%SETTINGS_FILE%" 2^>nul') do (
+    for /f "delims=" %%b in ("%%a") do (
+        set "line=%%b"
+        set "line=!line:*\"ANTHROPIC_BASE_URL\": =!"
+        for /f "delims=" %%c in ("!line!") do (
+            set "url=%%c"
+            set "url=!url:"=!"
+            set "url=!url:~=!"
+            set "url=!url:,=!"
+            for /f "delims=" %%d in ("!url!") do set "ANTHROPIC_BASE_URL=%%d"
+        )
+    )
+)
+
+for /f "tokens=*" %%a in ('findstr /C:"API_TIMEOUT_MS" "%SETTINGS_FILE%" 2^>nul') do (
+    for /f "delims=" %%b in ("%%a") do (
+        set "line=%%b"
+        set "line=!line:*\"API_TIMEOUT_MS\": =!"
+        for /f "delims=" %%c in ("!line!") do (
+            set "timeout=%%c"
+            set "timeout=!timeout:"=!"
+            set "timeout=!timeout:~=!"
+            set "timeout=!timeout:,=!"
+            for /f "delims=" %%d in ("!timeout!") do set "API_TIMEOUT_MS=%%d"
+        )
+    )
+)
+
+REM Report environment variable status
+if defined ANTHROPIC_AUTH_TOKEN if not "%ANTHROPIC_AUTH_TOKEN%"=="" (
+    call :print_status "Environment variable ANTHROPIC_AUTH_TOKEN set"
+) else (
+    call :print_status "Environment variable ANTHROPIC_AUTH_TOKEN cleared"
+)
+
+if defined ANTHROPIC_BASE_URL if not "%ANTHROPIC_BASE_URL%"=="" (
+    call :print_status "Environment variable ANTHROPIC_BASE_URL set"
+) else (
+    call :print_status "Environment variable ANTHROPIC_BASE_URL cleared"
+)
+
+if defined API_TIMEOUT_MS if not "%API_TIMEOUT_MS%"=="" (
+    call :print_status "Environment variable API_TIMEOUT_MS set"
+) else (
+    call :print_status "Environment variable API_TIMEOUT_MS cleared"
+)
+goto :eof
+
 :run_claude
 set "RESUME_ARG="
 
@@ -88,6 +164,9 @@ shift
 goto :check_args
 
 :done_check_args
+REM Set environment variables from settings
+call :set_env_from_settings
+
 call :print_status "Starting Claude Code..."
 if defined RESUME_ARG (
     claude --dangerously-skip-permissions --resume

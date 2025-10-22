@@ -75,6 +75,78 @@ update_to_claude() {
     print_status "Settings updated to Claude configuration (empty env)"
 }
 
+# Function to set environment variables from settings.json
+set_env_from_settings() {
+    local settings_file="$HOME/.claude/settings.json"
+
+    if [[ ! -f "$settings_file" ]]; then
+        print_warning "Settings file not found: $settings_file"
+        return 1
+    fi
+
+    # Read settings.json and extract environment variables
+    local auth_token=$(python3 -c "
+import json
+import sys
+try:
+    with open('$settings_file', 'r') as f:
+        data = json.load(f)
+    env = data.get('env', {})
+    print(env.get('ANTHROPIC_AUTH_TOKEN', ''))
+except:
+    print('')
+")
+
+    local base_url=$(python3 -c "
+import json
+import sys
+try:
+    with open('$settings_file', 'r') as f:
+        data = json.load(f)
+    env = data.get('env', {})
+    print(env.get('ANTHROPIC_BASE_URL', ''))
+except:
+    print('')
+")
+
+    local timeout_ms=$(python3 -c "
+import json
+import sys
+try:
+    with open('$settings_file', 'r') as f:
+        data = json.load(f)
+    env = data.get('env', {})
+    print(env.get('API_TIMEOUT_MS', ''))
+except:
+    print('')
+")
+
+    # Set environment variables if they exist
+    if [[ -n "$auth_token" ]]; then
+        export ANTHROPIC_AUTH_TOKEN="$auth_token"
+        print_status "Environment variable ANTHROPIC_AUTH_TOKEN set"
+    else
+        unset ANTHROPIC_AUTH_TOKEN
+        print_status "Environment variable ANTHROPIC_AUTH_TOKEN cleared"
+    fi
+
+    if [[ -n "$base_url" ]]; then
+        export ANTHROPIC_BASE_URL="$base_url"
+        print_status "Environment variable ANTHROPIC_BASE_URL set"
+    else
+        unset ANTHROPIC_BASE_URL
+        print_status "Environment variable ANTHROPIC_BASE_URL cleared"
+    fi
+
+    if [[ -n "$timeout_ms" ]]; then
+        export API_TIMEOUT_MS="$timeout_ms"
+        print_status "Environment variable API_TIMEOUT_MS set"
+    else
+        unset API_TIMEOUT_MS
+        print_status "Environment variable API_TIMEOUT_MS cleared"
+    fi
+}
+
 # Function to run Claude with appropriate arguments
 run_claude() {
     local resume_arg=""
@@ -86,6 +158,9 @@ run_claude() {
             break
         fi
     done
+
+    # Set environment variables from settings
+    set_env_from_settings
 
     print_status "Starting Claude Code..."
     exec claude --dangerously-skip-permissions $resume_arg

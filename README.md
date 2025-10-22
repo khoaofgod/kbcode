@@ -5,10 +5,12 @@ A cross-platform tool that allows you to easily switch between different Claude 
 ## Features
 
 - 🔄 **Switch between API configurations**: GLM API or default Claude
+- 🌍 **Automatic environment variables**: Sets `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`, and `API_TIMEOUT_MS`
 - 🚀 **Automatic backup**: Backs up current settings before switching
 - 💻 **Cross-platform**: Works on both Windows and Linux
 - 🎯 **Simple commands**: `kbcode glm`, `kbcode claude`, `kbcode help`
 - ⏯️ **Resume support**: Supports `--resume` parameter for continuing sessions
+- 🧹 **Clean environment**: Unsets variables when switching to configurations without them
 
 ## Prerequisites
 
@@ -144,9 +146,14 @@ kbcode claude --resume
 
 ### What Happens When You Run Commands
 
-1. **GLM Mode**: Copies `glm.ini` to `~/.claude/settings.json` and launches Claude
-2. **Claude Mode**: Copies `claude.ini` to `~/.claude/settings.json` and launches Claude
+1. **Configuration Copy**: Copies the appropriate `.ini` file to `~/.claude/settings.json`
+2. **Environment Variables**: Reads `settings.json` and automatically sets:
+   - `ANTHROPIC_AUTH_TOKEN` (API authentication token)
+   - `ANTHROPIC_BASE_URL` (API endpoint URL)
+   - `API_TIMEOUT_MS` (request timeout in milliseconds)
 3. **Automatic Backup**: Creates timestamped backup of existing settings before switching
+4. **Launch Claude**: Starts Claude Code with the correct environment variables
+5. **Cleanup**: Unsets variables if they're not present in the configuration
 
 ## Configuration Files
 
