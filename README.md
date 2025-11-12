@@ -409,6 +409,45 @@ kbcode my-setup sonnet-model haiku-model --resume
 
 This project is open source. Feel free to modify and distribute according to your needs.
 
+## 🔌 KBSERVER - Claude Code to OpenAI Bridge
+
+kbcode now includes **kbserver** - a simple HTTP server that bridges Claude Code and OpenAI API:
+
+### Quick Start
+```bash
+# Set OpenAI API key
+export OPENAI_API_KEY="your-openai-api-key"
+
+# Start kbserver
+node kbserver.js
+
+# Use with kbcode
+kbcode kbserver-config gpt-4
+```
+
+### Features
+- 🌐 **HTTP Server**: Listens on `0.0.0.0:8765`
+- 🔄 **Format Transformation**: Claude Code ↔ OpenAI API
+- 📡 **Streaming Support**: Real-time response streaming
+- 🛡️ **CORS Enabled**: Cross-origin requests supported
+- 📊 **Health Monitoring**: Built-in health check endpoint
+
+### Usage Examples
+```bash
+# Start server with environment variables
+OPENAI_API_KEY="sk-..." DEFAULT_MODEL="gpt-4" node kbserver.js
+
+# Use different OpenAI models
+kbcode kbserver-config gpt-4
+kbcode kbserver-config gpt-3.5-turbo
+kbcode kbserver-config gpt-4-turbo
+
+# Health check
+curl http://127.0.0.1:8765
+```
+
+📖 **See [KBSERVER.md](KBSERVER.md) for complete documentation**
+
 ## 🆘 Support
 
 If you encounter issues:
@@ -417,7 +456,8 @@ If you encounter issues:
 2. Verify all files exist and are readable
 3. Check that configuration files are valid JSON
 4. Run `kbcode help` for usage information
-5. Open an issue on the GitHub repository
+5. For kbserver issues, see [KBSERVER.md](KBSERVER.md)
+6. Open an issue on the GitHub repository
 
 ---
 
