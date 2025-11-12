@@ -33,46 +33,194 @@ backup_settings() {
     fi
 }
 
-# Function to update settings for GLM mode
-update_to_glm() {
-    local settings_file="$HOME/.claude/settings.json"
-    local settings_dir=$(dirname "$settings_file")
-    local glm_config="/etc/kbcode/glm.ini"
+# Function to find configuration file with priority order
+find_config_file() {
+    local config_name="$1"
 
-    # Create directory if it doesn't exist
-    mkdir -p "$settings_dir"
-
-    # Check if GLM config file exists
-    if [[ ! -f "$glm_config" ]]; then
-        print_error "GLM configuration file not found: $glm_config"
-        return 1
+    # Priority 1: Current working directory
+    local current_dir_file="$(pwd)/${config_name}.ini"
+    if [[ -f "$current_dir_file" ]]; then
+        echo "$current_dir_file"
+        return
     fi
 
-    # Copy GLM configuration
-    cp "$glm_config" "$settings_file"
+    # Priority 2: User's home kbcode directory
+    local home_dir_file="$HOME/kbcode/${config_name}.ini"
+    if [[ -f "$home_dir_file" ]]; then
+        echo "$home_dir_file"
+        return
+    fi
 
-    print_status "Settings updated to GLM configuration"
+    # Priority 3: System directory
+    local system_dir_file="/etc/kbcode/${config_name}.ini"
+    if [[ -f "$system_dir_file" ]]; then
+        echo "$system_dir_file"
+        return
+    fi
+
+    # File not found
+    return 1
 }
 
-# Function to update settings for Claude mode
-update_to_claude() {
+# Function to find alias file with priority order
+find_alias_file() {
+    # Priority 1: Current working directory
+    local current_dir_file="$(pwd)/model-alias.ini"
+    if [[ -f "$current_dir_file" ]]; then
+        echo "$current_dir_file"
+        return
+    fi
+
+    # Priority 2: User's home kbcode directory
+    local home_dir_file="$HOME/kbcode/model-alias.ini"
+    if [[ -f "$home_dir_file" ]]; then
+        echo "$home_dir_file"
+        return
+    fi
+
+    # Priority 3: System directory
+    local system_dir_file="/etc/kbcode/model-alias.ini"
+    if [[ -f "$system_dir_file" ]]; then
+        echo "$system_dir_file"
+        return
+    fi
+
+    # File not found
+    return 1
+}
+
+# Function to resolve model alias
+resolve_model_alias() {
+    local alias="$1"
+    local alias_file
+
+    # Find alias file using priority order
+    if alias_file=$(find_alias_file); then
+        # Use Python to resolve the alias
+        local resolved_model=$(python3 -c "
+import json
+import sys
+
+try:
+    with open('$alias_file', 'r') as f:
+        aliases = json.load(f)
+
+    model = aliases.get('$alias', '$alias')
+    print(model)
+except Exception as e:
+    # If alias file is invalid or alias not found, return the original
+    print('$alias')
+")
+        echo "$resolved_model"
+    else
+        # No alias file found, return the alias as-is
+        echo "$alias"
+    fi
+}
+
+# Function to update model settings in settings.json
+update_models_in_settings() {
+    local model1="$1"
+    local model2="$2"
+    local settings_file="$HOME/.claude/settings.json"
+
+    if [[ ! -f "$settings_file" ]]; then
+        print_error "Settings file not found: $settings_file"
+        return 1
+    fi
+
+    # Resolve model aliases
+    local resolved_model1=$(resolve_model_alias "$model1")
+    local resolved_model2=$(resolve_model_alias "$model2")
+
+    # Show alias resolution if different from input
+    if [[ "$resolved_model1" != "$model1" ]]; then
+        print_status "Resolved alias '$model1' → '$resolved_model1'"
+    fi
+    if [[ -n "$model2" && "$model2" != "$resolved_model2" ]]; then
+        print_status "Resolved alias '$model2' → '$resolved_model2'"
+    fi
+
+    # Use Python to update model settings in JSON
+    python3 -c "
+import json
+import sys
+
+try:
+    with open('$settings_file', 'r') as f:
+        data = json.load(f)
+
+    # Ensure env section exists
+    if 'env' not in data:
+        data['env'] = {}
+
+    # Update model settings with resolved values
+    if '$resolved_model2' and '$resolved_model2' != '':
+        # Two models specified: Sonnet = model1, others = model2
+        data['env']['ANTHROPIC_DEFAULT_SONNET_MODEL'] = '$resolved_model1'
+        data['env']['ANTHROPIC_DEFAULT_HAIKU_MODEL'] = '$resolved_model2'
+        data['env']['ANTHROPIC_DEFAULT_OPUS_MODEL'] = '$resolved_model2'
+        print(f'[INFO] Model configuration updated:')
+        print(f'[INFO]   SONNET: {data[\"env\"][\"ANTHROPIC_DEFAULT_SONNET_MODEL\"]}')
+        print(f'[INFO]   HAIKU: {data[\"env\"][\"ANTHROPIC_DEFAULT_HAIKU_MODEL\"]}')
+        print(f'[INFO]   OPUS: {data[\"env\"][\"ANTHROPIC_DEFAULT_OPUS_MODEL\"]}')
+    else:
+        # One model specified: all models = model1
+        data['env']['ANTHROPIC_DEFAULT_HAIKU_MODEL'] = '$resolved_model1'
+        data['env']['ANTHROPIC_DEFAULT_SONNET_MODEL'] = '$resolved_model1'
+        data['env']['ANTHROPIC_DEFAULT_OPUS_MODEL'] = '$resolved_model1'
+        print(f'[INFO] Model configuration updated:')
+        print(f'[INFO]   All models set to: {data[\"env\"][\"ANTHROPIC_DEFAULT_SONNET_MODEL\"]}')
+
+    # Write back to file
+    with open('$settings_file', 'w') as f:
+        json.dump(data, f, indent=4)
+
+    print('[INFO] Settings.json updated successfully')
+
+except Exception as e:
+    print(f'[ERROR] Failed to update model settings: {e}')
+    sys.exit(1)
+"
+}
+
+# Function to update settings for a given configuration
+update_to_config() {
+    local config_name="$1"
     local settings_file="$HOME/.claude/settings.json"
     local settings_dir=$(dirname "$settings_file")
-    local claude_config="/etc/kbcode/claude.ini"
+    local config_file
+
+    # Find configuration file using priority order
+    if ! config_file=$(find_config_file "$config_name"); then
+        print_error "Configuration file not found: ${config_name}.ini"
+        print_status "Search locations (in order):"
+        echo "  1. Current directory: $(pwd)/${config_name}.ini"
+        echo "  2. User directory: $HOME/kbcode/${config_name}.ini"
+        echo "  3. System directory: /etc/kbcode/${config_name}.ini"
+        echo ""
+        print_status "Available configurations:"
+        list_all_configs
+        return 1
+    fi
 
     # Create directory if it doesn't exist
     mkdir -p "$settings_dir"
 
-    # Check if Claude config file exists
-    if [[ ! -f "$claude_config" ]]; then
-        print_error "Claude configuration file not found: $claude_config"
-        return 1
+    # Copy configuration
+    cp "$config_file" "$settings_file"
+
+    # Show which file was used
+    local source_type
+    if [[ "$config_file" == "$(pwd)/${config_name}.ini" ]]; then
+        source_type="current directory"
+    elif [[ "$config_file" == "$HOME/kbcode/${config_name}.ini" ]]; then
+        source_type="user directory"
+    else
+        source_type="system directory"
     fi
 
-    # Copy Claude configuration
-    cp "$claude_config" "$settings_file"
-
-    print_status "Settings updated to Claude configuration (empty env)"
+    print_status "Settings updated to ${config_name} configuration (from $source_type)"
 }
 
 # Function to set environment variables from settings.json
@@ -84,136 +232,291 @@ set_env_from_settings() {
         return 1
     fi
 
-    # Read settings.json and extract environment variables
-    local auth_token=$(python3 -c "
+    # Use Python to dynamically extract and set all environment variables
+    python3 -c "
 import json
+import os
 import sys
+
 try:
     with open('$settings_file', 'r') as f:
         data = json.load(f)
-    env = data.get('env', {})
-    print(env.get('ANTHROPIC_AUTH_TOKEN', ''))
-except:
-    print('')
-")
 
-    local base_url=$(python3 -c "
+    env_vars = data.get('env', {})
+    set_vars = []
+    unset_vars = []
+
+    # Common Claude Code environment variables to track
+    common_vars = [
+        'ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_CUSTOM_HEADERS',
+        'ANTHROPIC_DEFAULT_HAIKU_MODEL', 'ANTHROPIC_DEFAULT_OPUS_MODEL',
+        'ANTHROPIC_DEFAULT_SONNET_MODEL', 'ANTHROPIC_MODEL', 'ANTHROPIC_SMALL_FAST_MODEL',
+        'ANTHROPIC_SMALL_FAST_MODEL_AWS_REGION', 'ANTHROPIC_BASE_URL', 'API_TIMEOUT_MS',
+        'CLAUDE_CODE_MAX_OUTPUT_TOKENS', 'MAX_THINKING_TOKENS', 'CLAUDE_CODE_SUBAGENT_MODEL',
+        'VERTEX_REGION_CLAUDE_3_5_HAIKU', 'VERTEX_REGION_CLAUDE_3_7_SONNET',
+        'VERTEX_REGION_CLAUDE_4_0_OPUS', 'VERTEX_REGION_CLAUDE_4_0_SONNET',
+        'VERTEX_REGION_CLAUDE_4_1_OPUS', 'CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX',
+        'AWS_BEARER_TOKEN_BEDROCK', 'BASH_DEFAULT_TIMEOUT_MS', 'BASH_MAX_OUTPUT_LENGTH',
+        'BASH_MAX_TIMEOUT_MS', 'CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR',
+        'CLAUDE_CODE_API_KEY_HELPER_TTL_MS', 'CLAUDE_CODE_CLIENT_CERT',
+        'CLAUDE_CODE_CLIENT_KEY_PASSPHRASE', 'CLAUDE_CODE_CLIENT_KEY',
+        'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC', 'CLAUDE_CODE_DISABLE_TERMINAL_TITLE',
+        'CLAUDE_CODE_IDE_SKIP_AUTO_INSTALL', 'CLAUDE_CODE_SKIP_BEDROCK_AUTH',
+        'CLAUDE_CODE_SKIP_VERTEX_AUTH', 'DISABLE_AUTOUPDATER', 'DISABLE_BUG_COMMAND',
+        'DISABLE_COST_WARNINGS', 'DISABLE_ERROR_REPORTING', 'DISABLE_NON_ESSENTIAL_MODEL_CALLS',
+        'DISABLE_PROMPT_CACHING', 'DISABLE_PROMPT_CACHING_HAIKU', 'DISABLE_PROMPT_CACHING_OPUS',
+        'DISABLE_PROMPT_CACHING_SONNET', 'DISABLE_TELEMETRY', 'HTTP_PROXY', 'HTTPS_PROXY',
+        'MAX_MCP_OUTPUT_TOKENS', 'MCP_TIMEOUT', 'MCP_TOOL_TIMEOUT', 'NO_PROXY',
+        'SLASH_COMMAND_TOOL_CHAR_BUDGET', 'USE_BUILTIN_RIPGREP'
+    ]
+
+    # Process all environment variables from settings
+    for key, value in env_vars.items():
+        if value:
+            print(f'export {key}=\"{value}\"')
+            print(f'echo \"[INFO] Environment variable {key} set\"')
+            set_vars.append(key)
+        else:
+            print(f'unset {key}')
+            print(f'echo \"[INFO] Environment variable {key} cleared\"')
+            unset_vars.append(key)
+
+    # Report summary
+    if set_vars:
+        print(f'echo \"[INFO] Set {len(set_vars)} environment variables\"')
+    if unset_vars:
+        print(f'echo \"[INFO] Cleared {len(unset_vars)} environment variables\"')
+
+    # Show model-specific info
+    model_vars = [var for var in set_vars if 'MODEL' in var or var == 'ANTHROPIC_MODEL']
+    if model_vars:
+        print(f'echo \"[INFO] Model configuration: {\", \".join(model_vars)}\"')
+
+except Exception as e:
+    print(f'echo \"[ERROR] Failed to process settings: {e}\"')
+    sys.exit(1)
+" | bash
+
+    # Execute the generated bash commands
+    local bash_commands=$(python3 -c "
 import json
-import sys
+import os
+
 try:
     with open('$settings_file', 'r') as f:
         data = json.load(f)
-    env = data.get('env', {})
-    print(env.get('ANTHROPIC_BASE_URL', ''))
-except:
-    print('')
+
+    env_vars = data.get('env', {})
+    commands = []
+
+    for key, value in env_vars.items():
+        if value:
+            commands.append(f'export {key}=\"{value}\"')
+            commands.append(f'echo -e \"\033[0;32m[INFO]\033[0m Environment variable {key} set\"')
+        else:
+            commands.append(f'unset {key}')
+            commands.append(f'echo -e \"\033[0;32m[INFO]\033[0m Environment variable {key} cleared\"')
+
+    # Summary
+    set_count = len([k for k, v in env_vars.items() if v])
+    unset_count = len([k for k, v in env_vars.items() if not v])
+
+    if set_count > 0:
+        commands.append(f'echo -e \"\033[0;32m[INFO]\033[0m Set {set_count} environment variables\"')
+    if unset_count > 0:
+        commands.append(f'echo -e \"\033[0;32m[INFO]\033[0m Cleared {unset_count} environment variables\"')
+
+    # Model info
+    model_vars = [k for k in env_vars.keys() if 'MODEL' in k or k == 'ANTHROPIC_MODEL']
+    if model_vars:
+        commands.append(f'echo -e \"\033[0;32m[INFO]\033[0m Model configuration: {\", \".join(model_vars)}\"')
+
+    return '\n'.join(commands)
+
+except Exception as e:
+    return f'echo -e \"\033[0;31m[ERROR]\033[0m Failed to process settings: {e}\"'
 ")
 
-    local timeout_ms=$(python3 -c "
-import json
-import sys
-try:
-    with open('$settings_file', 'r') as f:
-        data = json.load(f)
-    env = data.get('env', {})
-    print(env.get('API_TIMEOUT_MS', ''))
-except:
-    print('')
-")
-
-    # Set environment variables if they exist
-    if [[ -n "$auth_token" ]]; then
-        export ANTHROPIC_AUTH_TOKEN="$auth_token"
-        print_status "Environment variable ANTHROPIC_AUTH_TOKEN set"
-    else
-        unset ANTHROPIC_AUTH_TOKEN
-        print_status "Environment variable ANTHROPIC_AUTH_TOKEN cleared"
-    fi
-
-    if [[ -n "$base_url" ]]; then
-        export ANTHROPIC_BASE_URL="$base_url"
-        print_status "Environment variable ANTHROPIC_BASE_URL set"
-    else
-        unset ANTHROPIC_BASE_URL
-        print_status "Environment variable ANTHROPIC_BASE_URL cleared"
-    fi
-
-    if [[ -n "$timeout_ms" ]]; then
-        export API_TIMEOUT_MS="$timeout_ms"
-        print_status "Environment variable API_TIMEOUT_MS set"
-    else
-        unset API_TIMEOUT_MS
-        print_status "Environment variable API_TIMEOUT_MS cleared"
+    if [[ -n "$bash_commands" ]]; then
+        eval "$bash_commands"
     fi
 }
 
 # Function to run Claude with appropriate arguments
 run_claude() {
     local resume_arg=""
+    local danger_arg="--dangerously-skip-permissions"
+    local skip_danger=false
 
-    # Check if --resume was passed
+    # Check for special flags
     for arg in "$@"; do
         if [[ "$arg" == "--resume" ]]; then
             resume_arg="--resume"
-            break
+        elif [[ "$arg" == "--no-danger" ]]; then
+            skip_danger=true
         fi
     done
+
+    # Set danger argument based on flag
+    if [[ "$skip_danger" == "true" ]]; then
+        danger_arg=""
+        print_status "Running Claude Code without --dangerously-skip-permissions"
+    else
+        print_status "Running Claude Code with --dangerously-skip-permissions"
+    fi
 
     # Set environment variables from settings
     set_env_from_settings
 
     print_status "Starting Claude Code..."
-    exec claude --dangerously-skip-permissions $resume_arg
+    exec claude $danger_arg $resume_arg
+}
+
+# Function to list all configurations from all directories
+list_all_configs() {
+    local found_any=false
+
+    # Current directory configs
+    local current_configs=$(ls -1 "$(pwd)"/*.ini 2>/dev/null | xargs -n 1 basename 2>/dev/null | sed 's/.ini$//' | grep -v "model-alias")
+    if [[ -n "$current_configs" ]]; then
+        echo "  Current directory:"
+        echo "$current_configs" | sed 's/^/    - /'
+        found_any=true
+    fi
+
+    # User directory configs
+    if [[ -d "$HOME/kbcode" ]]; then
+        local user_configs=$(ls -1 "$HOME/kbcode"/*.ini 2>/dev/null | xargs -n 1 basename 2>/dev/null | sed 's/.ini$//' | grep -v "model-alias")
+        if [[ -n "$user_configs" ]]; then
+            echo "  User directory (~/kbcode/):"
+            echo "$user_configs" | sed 's/^/    - /'
+            found_any=true
+        fi
+    fi
+
+    # System directory configs
+    local system_configs=$(ls -1 /etc/kbcode/*.ini 2>/dev/null | xargs -n 1 basename 2>/dev/null | sed 's/.ini$//' | grep -v "model-alias")
+    if [[ -n "$system_configs" ]]; then
+        echo "  System directory (/etc/kbcode/):"
+        echo "$system_configs" | sed 's/^/    - /'
+        found_any=true
+    fi
+
+    if [[ "$found_any" == "false" ]]; then
+        echo "  No configuration files found in any search location"
+    fi
+}
+
+# Function to list available configurations (backward compatibility)
+list_configs() {
+    echo "Available configurations (search order: current → ~/kbcode/ → /etc/kbcode/):"
+    list_all_configs
 }
 
 # Main function
 main() {
-    local command="$1"
+    local config_name="$1"
     shift
 
-    case "$command" in
-        "glm")
-            print_status "Switching to GLM mode..."
-            backup_settings
-            update_to_glm
-            run_claude "$@"
-            ;;
-        "claude")
-            print_status "Switching to Claude mode..."
-            backup_settings
-            update_to_claude
-            run_claude "$@"
-            ;;
+    case "$config_name" in
         "-h"|"--help"|"help")
-            echo "kbcode - Claude Code Configuration Manager"
+            echo "kbcode - Dynamic Claude Code Configuration Manager with Model Support & Aliases"
             echo ""
             echo "Usage:"
-            echo "  kbcode glm [--resume]     Switch to GLM API configuration and run Claude"
-            echo "  kbcode claude [--resume]  Switch to default Claude configuration and run Claude"
-            echo "  kbcode help               Show this help message"
+            echo "  kbcode <config> [model1] [model2] [flags]  Switch configuration and optionally set models"
+            echo "  kbcode list                               List all available configurations"
+            echo "  kbcode help                               Show this help message"
+            echo ""
+            echo "Model Configuration:"
+            echo "  kbcode glm ModelA                         Set all models to ModelA"
+            echo "  kbcode glm ModelA ModelB                  Set Sonnet=ModelA, Haiku/Opus=ModelB"
+            echo ""
+            echo "Configuration File Search Order:"
+            echo "  1. Current directory (./config.ini)"
+            echo "  2. User directory (~/kbcode/config.ini)"
+            echo "  3. System directory (/etc/kbcode/config.ini)"
+            echo ""
+            echo "Model Aliases (via model-alias.ini, follows same search order):"
+            echo "  kbcode glm m2                             Use GLM with 'm2' alias → 'MiniMax-M2'"
+            echo "  kbcode glm k2                             Use GLM with 'k2' alias → 'moonshotai/kimi-k2-thinking'"
+            echo "  kbcode glm s4 h3                          Use aliases: Sonnet='s4'→'anthropic/claude-sonnet-4', Haiku='h3'→'anthropic/claude-3-5-haiku-20241022'"
+            echo ""
+            echo "Available Aliases (examples):"
+            echo "  m2 → MiniMax-M2, k2 → moonshotai/kimi-k2-thinking, s4 → anthropic/claude-sonnet-4"
+            echo "  h3 → anthropic/claude-3-5-haiku-20241022, o1 → anthropic/claude-opus-4-20250514"
+            echo "  g4 → glm-4.5, ds → deepseek-chat, dsr → deepseek-reasoner, q3 → qwen3-coder-plus"
+            echo ""
+            echo "Flags:"
+            echo "  --resume                                  Resume last Claude session"
+            echo "  --no-danger                              Skip --dangerously-skip-permissions flag"
             echo ""
             echo "Examples:"
-            echo "  kbcode glm                Use GLM API configuration"
-            echo "  kbcode glm --resume       Use GLM API and resume last session"
-            echo "  kbcode claude             Use default Claude configuration"
-            echo "  kbcode claude --resume    Use default Claude and resume last session"
+            echo "  kbcode glm                                Use GLM API configuration"
+            echo "  kbcode glm claude-3-5-sonnet-20241022    Use GLM with specific model"
+            echo "  kbcode glm m2                             Use GLM with 'm2' alias (MiniMax-M2)"
+            echo "  kbcode glm s4 h3 --resume                 Use GLM with aliases, resume session"
+            echo "  kbcode vertex k2                          Use Vertex with 'k2' alias"
+            echo "  kbcode glm unknown-model                  Use GLM with raw model name (no alias found)"
+            echo "  kbcode claude --no-danger                 Use default Claude without skip permissions"
+            echo "  kbcode list                               Show all available configurations"
+            echo ""
+            list_configs
+            ;;
+        "list")
+            list_configs
+            ;;
+        "")
+            print_error "No configuration specified"
+            echo ""
+            echo "Usage: kbcode <config> [model1] [model2] [flags]"
+            echo "Use 'kbcode help' for more information"
+            echo ""
+            list_configs
+            exit 1
             ;;
         *)
-            print_error "Unknown command: $command"
-            echo ""
-            echo "Usage: kbcode {glm|claude} [--resume]"
-            echo "Use 'kbcode help' for more information"
-            exit 1
+            # Extract model arguments and flags
+            local model1=""
+            local model2=""
+            local args=()
+
+            for arg in "$@"; do
+                if [[ "$arg" != "--resume" && "$arg" != "--no-danger" && ! "$arg" =~ ^-- ]]; then
+                    if [[ -z "$model1" ]]; then
+                        model1="$arg"
+                    elif [[ -z "$model2" ]]; then
+                        model2="$arg"
+                    fi
+                fi
+                args+=("$arg")
+            done
+
+            print_status "Switching to ${config_name} configuration..."
+            backup_settings
+
+            if update_to_config "$config_name"; then
+                # Update models if specified
+                if [[ -n "$model1" ]]; then
+                    print_status "Updating model configuration..."
+                    update_models_in_settings "$model1" "$model2"
+                fi
+
+                run_claude "${args[@]}"
+            else
+                exit 1
+            fi
             ;;
     esac
 }
 
 # Check if no arguments provided
 if [[ $# -eq 0 ]]; then
-    print_error "No command provided"
+    print_error "No configuration specified"
     echo ""
-    echo "Usage: kbcode {glm|claude} [--resume]"
+    echo "Usage: kbcode <config> [model1] [model2] [flags]"
     echo "Use 'kbcode help' for more information"
+    echo ""
+    list_configs
     exit 1
 fi
 

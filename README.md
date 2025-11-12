@@ -1,169 +1,93 @@
-# kbcode - Claude Code Configuration Manager
+# kbcode - Dynamic Claude Code Configuration Manager
 
-A cross-platform tool that allows you to easily switch between different Claude Code API configurations (GLM API vs default Claude) and launch Claude Code with the appropriate settings.
+A powerful tool that allows you to easily switch between different Claude Code API configurations, models, and providers with simple commands.
 
-## Features
+## 🚀 Quick Start
 
-- 🔄 **Switch between API configurations**: GLM API or default Claude
-- 🌍 **Automatic environment variables**: Sets `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`, and `API_TIMEOUT_MS`
-- 🚀 **Automatic backup**: Backs up current settings before switching
-- 💻 **Cross-platform**: Works on both Windows and Linux
-- 🎯 **Simple commands**: `kbcode glm`, `kbcode claude`, `kbcode help`
-- ⏯️ **Resume support**: Supports `--resume` parameter for continuing sessions
-- 🧹 **Clean environment**: Unsets variables when switching to configurations without them
+### Installation
 
-## Prerequisites
-
-- [Node.js and npm](https://nodejs.org/) installed
-- [Claude Code CLI](https://claude.ai/claude-code) installed:
-  ```bash
-  npm install -g @anthropic-ai/claude-code
-  ```
-
-## Installation
-
-### Option 1: Clone the Repository
-
+1. **Install Claude Code** (if not already installed):
 ```bash
-git clone https://github.com/khoaofgod/kbcode.git
-cd kbcode
+npm install -g @anthropic-ai/claude-code
 ```
 
-### Option 2: Download Files
+2. **Install kbcode**:
+```bash
+# System-wide installation (recommended)
+sudo mkdir -p /etc/kbcode/
+sudo chmod 0777 /etc/kbcode/
+sudo cp kbcode /etc/kbcode/
+sudo chmod +x /etc/kbcode/kbcode
+sudo ln -s /etc/kbcode/kbcode /usr/local/bin/kbcode
 
-Download the following files from the repository:
-- `kbcode` (Linux) or `kbcode.bat` (Windows)
-- `glm.ini`
-- `claude.ini`
-
-## Platform Setup
-
-### 🐧 Linux Setup
-
-1. **Move files to system directory**:
-   ```bash
-   sudo mkdir -p /etc/kbcode/
-   sudo chmod 0777 /etc/kbcode/
-   sudo cp kbcode glm.ini claude.ini /etc/kbcode/
-   sudo chmod 0666 /etc/kbcode/glm.ini /etc/kbcode/claude.ini
-   ```
-
-2. **Make executable**:
-   ```bash
-   sudo chmod +x /etc/kbcode/kbcode
-   ```
-
-3. **Create global symbolic link**:
-   ```bash
-   sudo ln -s /etc/kbcode/kbcode /usr/local/bin/kbcode
-   ```
-
-4. **Verify installation**:
-   ```bash
-   kbcode help
-   ```
-
-### 🪟 Windows Setup
-
-#### Method 1: Add to PATH (Recommended)
-
-1. **Choose installation directory** (e.g., `C:\kbcode`):
-
-   **Using PowerShell:**
-   ```powershell
-   mkdir C:\kbcode
-   Copy-Item kbcode.bat, glm.ini, claude.ini C:\kbcode\
-   ```
-
-   **Using Command Prompt (cmd):**
-   ```cmd
-   mkdir C:\kbcode
-   copy kbcode.bat glm.ini claude.ini C:\kbcode\
-   ```
-
-2. **Add to PATH**:
-   - Press `Win + R`, type `sysdm.cpl`, press Enter
-   - Go to "Advanced" tab → "Environment Variables"
-   - Under "System variables", find "Path", click "Edit"
-   - Click "New", add `C:\kbcode`
-   - Click OK on all windows
-
-3. **Restart Command Prompt/PowerShell** to refresh PATH
-
-4. **Verify installation**:
-   ```cmd
-   kbcode.bat help
-   ```
-
-#### Method 2: System-Wide Batch File
-
-1. **Copy to Windows directory**:
-
-   **Using PowerShell:**
-   ```powershell
-   Copy-Item kbcode.bat, glm.ini, claude.ini C:\Windows\
-   ```
-
-   **Using Command Prompt (cmd):**
-   ```cmd
-   copy kbcode.bat glm.ini claude.ini C:\
-   ```
-
-2. **Verify installation**:
-   ```cmd
-   kbcode.bat help
-   ```
-
-#### Method 3: PowerShell Alias
-
-Add to your PowerShell profile (`%USERPROFILE%\Documents\WindowsPowerShell\Profile.ps1`):
-
-```powershell
-Set-Alias -Name kbcode -Value "C:\path\to\kbcode\kbcode.bat"
-function kbcode {
-    & "C:\path\to\kbcode\kbcode.bat" $args
-}
+# Or copy to your home directory for personal use
+mkdir -p ~/kbcode
+cp kbcode ~/kbcode/
+chmod +x ~/kbcode/kbcode
+echo 'export PATH="$HOME/kbcode:$PATH"' >> ~/.bashrc
+source ~/.bashrc
 ```
 
-## Usage
+3. **Copy configuration files**:
+```bash
+sudo cp *.ini /etc/kbcode/
+sudo chmod 0666 /etc/kbcode/*.ini
+```
 
-### Basic Commands
+### Basic Usage
 
 ```bash
-# Switch to GLM API and run Claude
+# Use GLM API configuration
 kbcode glm
 
-# Switch to default Claude and run Claude
-kbcode claude
+# Use GLM with specific model
+kbcode glm claude-3-5-sonnet-20241022
 
-# Show help message
+# Use GLM with model aliases (m2 = MiniMax-M2)
+kbcode glm m2
+
+# Use different models for different tasks
+kbcode glm claude-3-5-sonnet claude-3-haiku
+
+# List all available configurations
+kbcode list
+
+# Show help
 kbcode help
-
-# Resume last session with GLM API
-kbcode glm --resume
-
-# Resume last session with default Claude
-kbcode claude --resume
 ```
 
-### What Happens When You Run Commands
+## 📁 Configuration Files
 
-1. **Configuration Copy**: Copies the appropriate `.ini` file to `~/.claude/settings.json`
-2. **Environment Variables**: Reads `settings.json` and automatically sets:
-   - `ANTHROPIC_AUTH_TOKEN` (API authentication token)
-   - `ANTHROPIC_BASE_URL` (API endpoint URL)
-   - `API_TIMEOUT_MS` (request timeout in milliseconds)
-3. **Automatic Backup**: Creates timestamped backup of existing settings before switching
-4. **Launch Claude**: Starts Claude Code with the correct environment variables
-5. **Cleanup**: Unsets variables if they're not present in the configuration
+### Configuration Search Order
 
-## Configuration Files
+kbcode looks for configuration files in this order:
 
-### GLM Configuration (`glm.ini`)
+1. **Current directory**: `./config.ini`
+2. **User directory**: `~/kbcode/config.ini`
+3. **System directory**: `/etc/kbcode/config.ini`
+
+### Basic Configuration File (.ini)
+
+Create `.ini` files with this JSON format:
+
 ```json
 {
     "env": {
-        "ANTHROPIC_AUTH_TOKEN": "your-glm-token-here",
+        "ANTHROPIC_AUTH_TOKEN": "your-api-token-here",
+        "ANTHROPIC_BASE_URL": "https://api.example.com/anthropic",
+        "API_TIMEOUT_MS": "120000"
+    },
+    "alwaysThinkingEnabled": true
+}
+```
+
+### Example Configuration Files
+
+**GLM Configuration (`glm.ini`)**:
+```json
+{
+    "env": {
+        "ANTHROPIC_AUTH_TOKEN": "your-glm-token",
         "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
         "API_TIMEOUT_MS": "3000000"
     },
@@ -171,7 +95,20 @@ kbcode claude --resume
 }
 ```
 
-### Claude Configuration (`claude.ini`)
+**Vertex AI Configuration (`vertex.ini`)**:
+```json
+{
+    "env": {
+        "ANTHROPIC_AUTH_TOKEN": "your-vertex-token",
+        "ANTHROPIC_BASE_URL": "https://generativelanguage.googleapis.com/anthropic",
+        "API_TIMEOUT_MS": "120000",
+        "CLAUDE_CODE_USE_VERTEX": "true"
+    },
+    "alwaysThinkingEnabled": false
+}
+```
+
+**Default Claude Configuration (`claude.ini`)**:
 ```json
 {
     "env": {},
@@ -179,99 +116,289 @@ kbcode claude --resume
 }
 ```
 
-## Troubleshooting
+## 🎯 Model Configuration
 
-### Windows Issues
+### Model Specification
 
-**Command not found**:
-- Verify the directory is in your PATH: `echo %PATH%`
-- Restart Command Prompt/PowerShell after adding to PATH
-- Try full path: `C:\kbcode\kbcode.bat help`
+kbcode supports flexible model configuration:
 
-**Permission denied**:
-- Run Command Prompt as Administrator
-- Check file permissions: `icacls kbcode.bat`
+```bash
+# Set all models to the same model
+kbcode glm claude-3-5-sonnet-20241022
 
-**Claude not found**:
-- Verify Claude Code installation: `npm list -g @anthropic-ai/claude-code`
-- Reinstall: `npm install -g @anthropic-ai/claude-code`
+# Set Sonnet to one model, others to another
+kbcode glm claude-3-5-sonnet claude-3-haiku
+# Result: SONNET=claude-3-5-sonnet, HAIKU=claude-3-haiku, OPUS=claude-3-haiku
+```
 
-### Linux Issues
+### Model Aliases
 
-**Command not found**:
-- Check if symlink exists: `ls -la /usr/local/bin/kbcode`
-- Verify script is executable: `ls -la /etc/kbcode/kbcode`
-- Try full path: `/etc/kbcode/kbcode help`
+Create a `model-alias.ini` file to use short aliases for long model names:
 
-**Permission denied**:
-- Run with sudo: `sudo /etc/kbcode/kbcode help`
-- Check permissions: `ls -la /etc/kbcode/`
+```json
+{
+    "m2": "MiniMax-M2",
+    "k2": "moonshotai/kimi-k2-thinking",
+    "s4": "anthropic/claude-sonnet-4",
+    "h3": "anthropic/claude-3-5-haiku-20241022",
+    "o1": "anthropic/claude-opus-4-20250514",
+    "g4": "glm-4.5",
+    "ds": "deepseek-chat",
+    "dsr": "deepseek-reasoner",
+    "q3": "qwen3-coder-plus",
+    "g25": "google/gemini-2.5-pro-preview"
+}
+```
 
-**Claude not found**:
-- Check npm global installation: `npm list -g @anthropic-ai/claude-code`
-- Verify npm global bin directory is in PATH: `echo $PATH`
+**Using aliases:**
+```bash
+kbcode glm m2                    # Uses MiniMax-M2
+kbcode glm s4 h3                 # Sonnet=anthropic/claude-sonnet-4, others=anthropic/claude-3-5-haiku-20241022
+kbcode vertex k2                 # Uses moonshotai/kimi-k2-thinking with Vertex config
+```
 
-### General Issues
+## 🛠️ Advanced Features
 
-**Configuration file not found**:
-- Ensure `glm.ini` and `claude.ini` are in the same directory as the script
-- Check file paths in error messages
+### Flags
 
-**Settings not applying**:
-- Check `~/.claude/settings.json` exists and has correct content
-- Verify backup files are being created in `~/.claude/`
+```bash
+# Resume last session
+kbcode glm m2 --resume
 
-## File Locations
+# Skip --dangerously-skip-permissions (safer mode)
+kbcode claude --no-danger
 
-### Windows
-- Script: `C:\kbcode\kbcode.bat` (or your chosen location)
-- Configs: `C:\kbcode\glm.ini`, `C:\kbcode\claude.ini`
-- Settings: `%USERPROFILE%\.claude\settings.json`
-- Backups: `%USERPROFILE%\.claude\settings.json.backup.*`
+# Combine flags
+kbcode glm s4 h3 --resume --no-danger
+```
 
-### Linux
-- Script: `/etc/kbcode/kbcode`
-- Configs: `/etc/kbcode/glm.ini`, `/etc/kbcode/claude.ini`
-- Settings: `~/.claude/settings.json`
-- Backups: `~/.claude/settings.json.backup.*`
+### Environment Variables
 
-## Advanced Usage
+kbcode automatically sets these environment variables from your `.ini` files:
 
-### Custom API Configuration
+**Common Variables:**
+- `ANTHROPIC_AUTH_TOKEN` - API authentication token
+- `ANTHROPIC_BASE_URL` - API endpoint URL
+- `API_TIMEOUT_MS` - Request timeout in milliseconds
 
-Edit the `.ini` files to use different API endpoints:
+**Model Variables:**
+- `ANTHROPIC_MODEL` - Main model selection
+- `ANTHROPIC_DEFAULT_SONNET_MODEL` - Sonnet model configuration
+- `ANTHROPIC_DEFAULT_HAIKU_MODEL` - Haiku model configuration
+- `ANTHROPIC_DEFAULT_OPUS_MODEL` - Opus model configuration
+- `CLAUDE_CODE_MAX_OUTPUT_TOKENS` - Maximum output tokens
+- `MAX_THINKING_TOKENS` - Extended thinking token budget
+
+**Provider Variables:**
+- `CLAUDE_CODE_USE_VERTEX` - Use Google Vertex AI
+- `CLAUDE_CODE_USE_BEDROCK` - Use AWS Bedrock
+
+## 📋 Command Reference
+
+### Basic Commands
+
+```bash
+kbcode <config>                    # Use configuration
+kbcode <config> <model>            # Use config with specific model
+kbcode <config> <model1> <model2>  # Use config with dual models
+kbcode list                        # Show all configurations
+kbcode help                        # Show help
+```
+
+### Examples
+
+```bash
+# Basic usage
+kbcode glm                         # Use GLM API
+kbcode vertex                      # Use Vertex AI
+kbcode claude                      # Use default Claude
+
+# With models
+kbcode glm claude-3-5-sonnet-20241022
+kbcode glm m2                      # Using alias
+kbcode glm s4 h3                   # Dual models
+
+# With flags
+kbcode glm m2 --resume
+kbcode claude --no-danger
+kbcode vertex k2 --resume --no-danger
+
+# Management
+kbcode list                        # Show available configs
+kbcode help                        # Show detailed help
+```
+
+## 🏗️ Project Structure
+
+### System-Wide Setup
+```
+/etc/kbcode/
+├── kbcode              # Main script
+├── glm.ini             # GLM configuration
+├── claude.ini          # Default Claude config
+├── vertex.ini          # Vertex AI config
+├── model-alias.ini     # Model aliases
+└── custom.ini          # Your custom configs
+```
+
+### User Setup
+```
+~/kbcode/
+├── my-glm.ini          # Personal GLM config
+├── my-vertex.ini       # Personal Vertex config
+└── my-aliases.ini      # Personal aliases
+```
+
+### Project Setup
+```
+/my-project/
+├── project.ini         # Project-specific config
+├── model-alias.ini     # Project-specific aliases
+└── .env               # Environment files (optional)
+```
+
+## 🎯 Use Cases
+
+### 1. Project-Specific Configuration
+```bash
+cd /my-ai-project/
+# Create project.ini with project-specific settings
+kbcode project model-name
+```
+
+### 2. Team Configuration Sharing
+```bash
+# Share configurations with team via git
+git clone git@github.com:myteam/kbcode-configs.git ~/kbcode
+kbcode team-glm m2
+```
+
+### 3. Multi-Provider Setup
+```bash
+# Switch between different providers easily
+kbcode glm m2           # GLM provider
+kbcode vertex k2        # Vertex AI provider
+kbcode custom ds        # Custom provider
+```
+
+### 4. Development vs Production
+```bash
+kbcode dev claude-3-5-sonnet      # Development config
+kbcode prod claude-opus-4         # Production config
+```
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**Command not found:**
+```bash
+# Check if kbcode is in PATH
+which kbcode
+
+# If not found, add to PATH
+echo 'export PATH="/path/to/kbcode:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Configuration not found:**
+```bash
+# Check what configurations are available
+kbcode list
+
+# Check search locations
+kbcode help  # Shows search order
+```
+
+**Permission denied:**
+```bash
+# Make script executable
+chmod +x kbcode
+
+# Check file permissions
+ls -la kbcode
+```
+
+### Debug Mode
+
+Check what kbcode is doing:
+```bash
+# List all configurations with their locations
+kbcode list
+
+# Check which config file will be used
+ls -la ./config.ini ~/kbcode/config.ini /etc/kbcode/config.ini
+```
+
+## 📚 Advanced Configuration
+
+### Custom Environment Variables
+
+You can add any Claude Code environment variable to your `.ini` files:
 
 ```json
 {
     "env": {
-        "ANTHROPIC_AUTH_TOKEN": "your-custom-token",
-        "ANTHROPIC_BASE_URL": "https://your-custom-api.com/anthropic",
-        "API_TIMEOUT_MS": "60000"
+        "ANTHROPIC_AUTH_TOKEN": "your-token",
+        "ANTHROPIC_BASE_URL": "https://api.example.com",
+        "API_TIMEOUT_MS": "120000",
+        "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "8192",
+        "MAX_THINKING_TOKENS": "20000",
+        "DISABLE_COST_WARNINGS": "true",
+        "HTTP_PROXY": "http://proxy.example.com:8080"
     },
     "alwaysThinkingEnabled": true
 }
 ```
 
-### Multiple Profiles
+### Complete Example
 
-You can extend the script by adding new configuration files and updating the case statement to support additional API providers.
+**My Custom Configuration (`my-setup.ini`)**:
+```json
+{
+    "env": {
+        "ANTHROPIC_AUTH_TOKEN": "sk-your-custom-token",
+        "ANTHROPIC_BASE_URL": "https://my-custom-api.com/anthropic",
+        "API_TIMEOUT_MS": "180000",
+        "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-3-5-sonnet-20241022",
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-3-5-haiku-20241022",
+        "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "16384",
+        "MAX_THINKING_TOKENS": "25000",
+        "DISABLE_COST_WARNINGS": "false"
+    },
+    "alwaysThinkingEnabled": true
+}
+```
 
-## Contributing
+**Usage:**
+```bash
+kbcode my-setup
+kbcode my-setup custom-model
+kbcode my-setup sonnet-model haiku-model --resume
+```
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test on both Windows and Linux
+4. Test on multiple platforms
 5. Submit a pull request
 
-## License
+## 📄 License
 
 This project is open source. Feel free to modify and distribute according to your needs.
 
-## Support
+## 🆘 Support
 
 If you encounter issues:
+
 1. Check the troubleshooting section above
-2. Verify all prerequisites are installed
-3. Check that configuration files exist and are readable
-4. Open an issue on the GitHub repository
+2. Verify all files exist and are readable
+3. Check that configuration files are valid JSON
+4. Run `kbcode help` for usage information
+5. Open an issue on the GitHub repository
+
+---
+
+**Happy coding with kbcode! 🚀**
