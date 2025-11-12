@@ -1,0 +1,37 @@
+{
+  "name": "kbserver",
+  "version": "1.0.0",
+  "description": "Simple Claude Code to OpenAI API Bridge Server",
+  "main": "kbserver.js",
+  "bin": {
+    "kbserver": "./kbserver.js"
+  },
+  "scripts": {
+    "start": "node kbserver.js",
+    "dev": "node kbserver.js",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "claude-code",
+    "openai",
+    "api",
+    "bridge",
+    "server",
+    "http"
+  ],
+  "author": "Khoa Bui <khoaofgod@gmail.com>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/khoaofgod/kbcode.git"
+  },
+  "bugs": {
+    "url": "https://github.com/khoaofgod/kbcode/issues"
+  },
+  "homepage": "https://github.com/khoaofgod/kbcode#readme"
+}
