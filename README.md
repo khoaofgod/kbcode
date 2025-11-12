@@ -108,6 +108,18 @@ Create `.ini` files with this JSON format:
 }
 ```
 
+**Claude Code Router Configuration (`ccr.ini`)**:
+```json
+{
+    "env": {
+        "ANTHROPIC_AUTH_TOKEN": "your-token-api",
+        "ANTHROPIC_BASE_URL": "http://127.0.0.1:3456",
+        "API_TIMEOUT_MS": "3000000"
+    },
+    "alwaysThinkingEnabled": true
+}
+```
+
 **Default Claude Configuration (`claude.ini`)**:
 ```json
 {
@@ -211,6 +223,7 @@ kbcode help                        # Show help
 # Basic usage
 kbcode glm                         # Use GLM API
 kbcode vertex                      # Use Vertex AI
+kbcode ccr                          # Use Claude Code Router (localhost:3456)
 kbcode claude                      # Use default Claude
 
 # With models
@@ -219,11 +232,14 @@ kbcode glm m2                      # Using alias (MiniMax-M2)
 kbcode glm glm                     # Using alias (z-ai/glm-4.6)
 kbcode glm glm-thinking            # Using alias (z-ai/glm-4.6:thinking)
 kbcode glm deepseek k2             # Dual models (deepseek + k2)
+kbcode ccr m2                      # Use CCR with MiniMax-M2 model
+kbcode ccr glm-thinking            # Use CCR with GLM thinking model
 
 # With flags
 kbcode glm m2 --resume
 kbcode claude --no-danger
 kbcode vertex k2 --resume --no-danger
+kbcode ccr deepseek --resume      # Use CCR with DeepSeek, resume session
 
 # Management
 kbcode list                        # Show available configs
@@ -238,6 +254,7 @@ kbcode help                        # Show detailed help
 ├── kbcode              # Main script
 ├── glm.ini             # GLM configuration
 ├── claude.ini          # Default Claude config
+├── ccr.ini             # Claude Code Router config
 ├── vertex.ini          # Vertex AI config
 ├── model-alias.ini     # Model aliases
 └── custom.ini          # Your custom configs
@@ -280,6 +297,7 @@ kbcode team-glm m2
 # Switch between different providers easily
 kbcode glm m2           # GLM provider
 kbcode vertex k2        # Vertex AI provider
+kbcode ccr deepseek    # Claude Code Router provider
 kbcode custom ds        # Custom provider
 ```
 
