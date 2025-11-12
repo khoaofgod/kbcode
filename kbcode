@@ -331,10 +331,10 @@ try:
     if model_vars:
         commands.append(f'echo -e \"\033[0;32m[INFO]\033[0m Model configuration: {\", \".join(model_vars)}\"')
 
-    return '\n'.join(commands)
+    print('\n'.join(commands))
 
 except Exception as e:
-    return f'echo -e \"\033[0;31m[ERROR]\033[0m Failed to process settings: {e}\"'
+    print(f'echo -e \"\033[0;31m[ERROR]\033[0m Failed to process settings: {e}\"')
 ")
 
     if [[ -n "$bash_commands" ]]; then
