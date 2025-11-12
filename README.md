@@ -139,21 +139,21 @@ Create a `model-alias.ini` file to use short aliases for long model names:
 {
     "m2": "MiniMax-M2",
     "k2": "moonshotai/kimi-k2-thinking",
-    "s4": "anthropic/claude-sonnet-4",
-    "h3": "anthropic/claude-3-5-haiku-20241022",
-    "o1": "anthropic/claude-opus-4-20250514",
-    "g4": "glm-4.5",
-    "ds": "deepseek-chat",
-    "dsr": "deepseek-reasoner",
-    "q3": "qwen3-coder-plus",
-    "g25": "google/gemini-2.5-pro-preview"
+    "glm": "z-ai/glm-4.6",
+    "glm-thinking": "z-ai/glm-4.6:thinking",
+    "deepseek": "deepseek-ai/deepseek-v3.2-exp",
+    "deepseek-thinking": "deepseek-ai/deepseek-v3.2-exp-thinking"
 }
 ```
 
 **Using aliases:**
 ```bash
 kbcode glm m2                    # Uses MiniMax-M2
-kbcode glm s4 h3                 # Sonnet=anthropic/claude-sonnet-4, others=anthropic/claude-3-5-haiku-20241022
+kbcode glm glm                   # Uses z-ai/glm-4.6
+kbcode glm glm-thinking          # Uses z-ai/glm-4.6:thinking
+kbcode glm deepseek              # Uses deepseek-ai/deepseek-v3.2-exp
+kbcode glm deepseek-thinking     # Uses deepseek-ai/deepseek-v3.2-exp-thinking
+kbcode glm m2 k2                 # Sonnet=MiniMax-M2, others=moonshotai/kimi-k2-thinking
 kbcode vertex k2                 # Uses moonshotai/kimi-k2-thinking with Vertex config
 ```
 
@@ -215,8 +215,10 @@ kbcode claude                      # Use default Claude
 
 # With models
 kbcode glm claude-3-5-sonnet-20241022
-kbcode glm m2                      # Using alias
-kbcode glm s4 h3                   # Dual models
+kbcode glm m2                      # Using alias (MiniMax-M2)
+kbcode glm glm                     # Using alias (z-ai/glm-4.6)
+kbcode glm glm-thinking            # Using alias (z-ai/glm-4.6:thinking)
+kbcode glm deepseek k2             # Dual models (deepseek + k2)
 
 # With flags
 kbcode glm m2 --resume
